@@ -14,6 +14,7 @@
       --text-main: #f0f0f5;
       --text-sub: #9ba1a6;
       --border-color: #2f2f3d;
+      --tab-active: #3a86ff;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body {
@@ -50,14 +51,46 @@
       cursor: pointer;
       padding: 4px;
     }
-    #chat-container {
+    /* ナビゲーションタブ */
+    .tab-bar {
+      display: flex;
+      background-color: var(--surface-color);
+      border-bottom: 1px solid var(--border-color);
+      flex-shrink: 0;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 10px;
+      background: none;
+      border: none;
+      color: var(--text-sub);
+      font-size: 0.95rem;
+      font-weight: bold;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+    .tab-btn.active {
+      color: var(--text-main);
+      border-bottom-color: var(--tab-active);
+    }
+    .view-section {
+      display: none;
       flex: 1;
       overflow-y: auto;
+      flex-direction: column;
+      -webkit-overflow-scrolling: touch;
+    }
+    .view-section.active {
+      display: flex;
+    }
+    /* チャット表示エリア */
+    #chat-container {
+      flex: 1;
       padding: 16px;
       display: flex;
       flex-direction: column;
       gap: 16px;
-      -webkit-overflow-scrolling: touch;
     }
     .message-row {
       display: flex;
@@ -134,6 +167,59 @@
       opacity: 0.5;
       cursor: not-allowed;
     }
+    /* スナップ（写真生成）エリア */
+    #snap-section {
+      padding: 16px;
+      align-items: center;
+      gap: 16px;
+    }
+    .snap-card {
+      width: 100%;
+      max-width: 480px;
+      background-color: var(--surface-color);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .snap-card p {
+      font-size: 0.9rem;
+      color: var(--text-sub);
+      line-height: 1.4;
+    }
+    .btn-action {
+      background: #3a86ff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 10px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .btn-action:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    #snap-preview {
+      width: 100%;
+      border-radius: 8px;
+      background: #000;
+      min-height: 240px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-sub);
+      font-size: 0.85rem;
+      overflow: hidden;
+    }
+    #snap-preview img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    /* 設定モーダル */
     #settings-modal {
       display: none;
       position: fixed;
@@ -197,22 +283,41 @@
     <button class="settings-btn" id="open-settings" aria-label="設定">⚙️</button>
   </header>
 
-  <div id="chat-container">
-    <div class="message-row bot bot-zakuro">
-      <div class="sender-name">柘榴</div>
-      <div class="bubble">まーくん、おつかれー！準備できたよ！</div>
-    </div>
-    <div class="message-row bot bot-kohaku">
-      <div class="sender-name">琥珀</div>
-      <div class="bubble">おかえり、まーくん。今日もゆっくり話そうね。</div>
-    </div>
-  </div>
+  <nav class="tab-bar">
+    <button class="tab-btn active" id="tab-chat" data-target="chat-section">チャット</button>
+    <button class="tab-btn" id="tab-snap" data-target="snap-section">日常スナップ</button>
+  </nav>
 
-  <form id="input-form">
-    <input type="text" id="user-input" placeholder="メッセージを入力..." autocomplete="off">
-    <button type="submit" id="send-btn">送信</button>
-  </form>
+  <!-- チャット画面 -->
+  <section class="view-section active" id="chat-section">
+    <div id="chat-container">
+      <div class="message-row bot bot-zakuro">
+        <div class="sender-name">柘榴</div>
+        <div class="bubble">まーくん、おつかれー！準備できたよ！</div>
+      </div>
+      <div class="message-row bot bot-kohaku">
+        <div class="sender-name">琥珀</div>
+        <div class="bubble">おかえり、まーくん。今日もゆっくり話そうね。</div>
+      </div>
+    </div>
 
+    <form id="input-form">
+      <input type="text" id="user-input" placeholder="メッセージを入力..." autocomplete="off">
+      <button type="submit" id="send-btn">送信</button>
+    </form>
+  </section>
+
+  <!-- スナップ画面 -->
+  <section class="view-section" id="snap-section">
+    <div class="snap-card">
+      <h3>いまの日常スナップ</h3>
+      <p>これまでの会話の空気感から、二人の今の様子を切り取った写真をリクエストします。</p>
+      <button class="btn-action" id="generate-snap-btn">今の様子を撮る</button>
+      <div id="snap-preview">ここに写真が表示されます</div>
+    </div>
+  </section>
+
+  <!-- 設定モーダル -->
   <div id="settings-modal">
     <div class="modal-content">
       <h2>API設定</h2>
@@ -231,13 +336,13 @@
 
 【キャラクター設定】
 ■ 柘榴（ざくろ）
-・明るく元気なギャル。一人称は「あーし」。
+・明るく元気なギャル。プラチナブロンドのロングヘア。一人称は「あーし」。
 ・相手の呼び方は「まーくん」または「まー」。
-・感情表現が豊かで軽快な口調。自然な笑いやツッコミを入れる。
+・感情表現が豊かで軽快な口調。自然なツッコミを入れる。
 ・ファッションや最新トレンド、SNS、楽しいことが好き。
 
 ■ 琥珀（こはく）
-・落ち着いていて優しい大人可愛いギャル。一人称は「アタシ」。
+・落ち着いていて優しい大人可愛いギャル。シルバーアッシュのボブヘア、健康的で穏やか。一人称は「アタシ」。
 ・相手の呼び方は「まーくん」または「まー」。
 ・穏やかで面倒見が良く、聞き上手。少し天然なところがある。
 ・美容やスキンケア、カフェ巡り、料理、考えを整理することが得意。
@@ -251,6 +356,21 @@
 4. 単なる肯定ロボットにならず、それぞれの感性で日常の会話を楽しんでください。
 `;
 
+    // タブ切り替え処理
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const sections = document.querySelectorAll('.view-section');
+
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        tabBtns.forEach(b => b.classList.remove('active'));
+        sections.forEach(s => s.classList.remove('active'));
+
+        btn.classList.add('active');
+        const targetId = btn.getAttribute('data-target');
+        document.getElementById(targetId).classList.add('active');
+      });
+    });
+
     const chatContainer = document.getElementById('chat-container');
     const inputForm = document.getElementById('input-form');
     const userInput = document.getElementById('user-input');
@@ -260,6 +380,8 @@
     const closeSettingsBtn = document.getElementById('close-settings');
     const saveSettingsBtn = document.getElementById('save-settings');
     const apiKeyInput = document.getElementById('api-key-input');
+    const generateSnapBtn = document.getElementById('generate-snap-btn');
+    const snapPreview = document.getElementById('snap-preview');
 
     let history = [];
 
@@ -304,6 +426,7 @@
       chatContainer.scrollTop = chatContainer.scrollHeight;
     }
 
+    // チャット送信
     inputForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const text = userInput.value.trim();
@@ -393,6 +516,48 @@
       } finally {
         sendBtn.disabled = false;
         chatContainer.scrollTop = chatContainer.scrollHeight;
+      }
+    });
+
+    // 日常スナップ生成処理
+    generateSnapBtn.addEventListener('click', async () => {
+      const apiKey = getApiKey();
+      if (!apiKey) {
+        alert('設定アイコンからAPIキーを入力してください。');
+        settingsModal.style.display = 'flex';
+        return;
+      }
+
+      generateSnapBtn.disabled = true;
+      snapPreview.textContent = '情景をイメージして生成中...';
+
+      try {
+        const modelName = 'gemini-3.8-flash';
+        const promptGenUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+
+        const promptReq = {
+          contents: [{
+            role: 'user',
+            parts: [{
+              text: `これまでの会話を踏まえ、柘榴（プラチナブロンドのロングヘアの明るいギャル）と琥珀（シルバーアッシュのボブ、落ち着いたギャル）が部屋でくつろいでいる日常のスナップ写真を描写する英語の画像生成プロンプトを1文で作成してください。`
+            }]
+          }]
+        };
+
+        const genRes = await fetch(promptGenUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(promptReq)
+        });
+
+        const genData = await genRes.json();
+        const imagePrompt = genData.candidates?.[0]?.content?.parts?.[0]?.text || 'Two young Japanese women relaxing in a modern cozy room, casual candid photo';
+
+        snapPreview.innerHTML = `<div style="padding:10px;text-align:left;font-size:0.8rem;color:var(--text-sub);">プロンプト生成完了:<br>${imagePrompt}</div>`;
+      } catch (e) {
+        snapPreview.textContent = 'エラー: ' + e.message;
+      } finally {
+        generateSnapBtn.disabled = false;
       }
     });
   </script>
