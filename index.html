@@ -263,9 +263,8 @@
 
     let history = [];
 
-    // API Key Handling
     function getApiKey() {
-      return localStorage.getItem('gemini_api_key') || '';
+      return (localStorage.getItem('gemini_api_key') || '').trim();
     }
 
     openSettingsBtn.addEventListener('click', () => {
@@ -324,7 +323,7 @@
       history.push({ role: 'user', parts: [{ text }] });
 
       try {
-        const modelName = 'gemini-2.5-flash';
+        const modelName = 'gemini-3.8-flash';
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
         const response = await fetch(url, {
@@ -360,7 +359,6 @@
 
         history.push({ role: 'model', parts: [{ text: replyText }] });
 
-        // Parse Zakuro and Kohaku replies
         const lines = replyText.split('\n');
         let currentSender = '柘榴';
         let zakuroLines = [];
