@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>柘榴と琥珀のチャット</title>
+    <style>
+        :root {
+            --bg-color: #121214;
+            --surface-color: #1e1e24;
+            --surface-hover: #2a2a35;
+            --primary-zakuro: #ff477e;
+            --primary-kohaku: #ffb703;
+            --text-main: #f0f0f5;
+            --text-sub: #9ba1a6;
+            --border-color: #2f2f3d;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+        
+        html, body {
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            overflow: hidden;
+            position: fixed;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        header {
+            background-color: var(--surface-color);
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 56px;
+            flex-shrink: 0;
+        }
+        .header-title h1 { font-size: 1rem; font-weight: 600; color: #fff; }
+        .header-title p { font-size: 0.75rem; color: var(--text-sub); }
+        .header-btns { display: flex; gap: 4px; }
+        .icon-btn { background: none; border: none; color: var(--text-main); font-size: 1.2rem; cursor: pointer; padding: 8px; border-radius: 6px; }
+        .icon-btn:active { background: var(--surface-hover); }
+
+        .mode-tabs {
+            display: flex;
+            background: var(--surface-color);
+            padding: 6px;
+            border-bottom: 1px solid var(--border-color);
+            gap: 6px;
+            height: 48px;
+            flex-shrink: 0;
+        }
+        .mode-tab {
+            flex: 1;
+            text-align: center;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-sub);
+            background: transparent;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .mode-tab.active { background: var(--surface-hover); color: #fff; font-weight: 600; }
+        .mode-tab[data-mode="zakuro"].active { color: var(--primary-zakuro); }
+        .mode-tab[data-mode="kohaku"].active { color: var(--primary-kohaku); }
+
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            -webkit-overflow-scrolling: touch;
+        }
+        .message { display: flex; flex-direction: column; max-width: 85%; }
+        .message.user { align-self: flex-end; }
+        .message.zakuro, .message.kohaku, .message.both { align-self: flex-start; }
+
+        .message-header { font-size: 0.75rem; margin-bottom: 4px; color: var(--text-sub); display: flex; gap: 6px; align-items: center; }
+        .message.zakuro .speaker-name { color: var(--primary-zakuro); font-weight: bold; }
+        .message.kohaku .speaker-name { color: var(--primary-kohaku); font-weight: bold; }
+        
+        .bubble { padding: 10px 14px; border-radius: 12px; font-size: 0.95rem; line-height: 1.5; word-break: break-all; white-space: pre-wrap; }
+        .message.user .bubble { background: #3b82f6; color: #fff; border-bottom-right-radius: 2px; }
+        .message.zakuro .bubble { background: var(--surface-color); border: 1px solid rgba(255, 71, 126, 0.3); border-bottom-left-radius: 2px; }
+        .message.kohaku .bubble { background: var(--surface-color); border: 1px solid rgba(255, 183, 3, 0.3); border-bottom-left-radius: 2px; }
+        .message.both .bubble { background: var(--surface-color); border: 1px solid var(--border-color); border-bottom-left-radius: 2px; }
+
+        .snap-img-wrapper { margin-top: 8px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color); }
+        .snap-img-wrapper img { width: 100%; height: auto; display: block; }
+
+        .input-area {
+            background: var(--surface-color);
+            padding: 10px 16px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            height: 64px;
+            flex-shrink: 0;
+            z-index: 50;
+        }
+        .input-area input {
+            flex: 1;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 10px 16px;
+            color: #fff;
+            font-size: 1rem;
+            outline: none;
+            height: 42px;
+        }
+        .input-area input:focus { border-color: #3b82f6; }
+        .send-btn, .snap-btn {
+            background: var(--surface-hover);
+            border: none;
+            color: var(--text-main);
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            flex-shrink: 0;
+            font-size: 1.1rem;
+        }
+        .send-btn { background: #3b82f6; color: #fff; }
+        .snap-btn:active { background: var(--border-color); }
+
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center; padding: 16px; }
+        .modal.active { display: flex; }
+        .modal-content { background: var(--surface-color); width: 100%; max-width: 400px; border-radius: 12px; border: 1px solid var(--border-color); overflow: hidden; display: flex; flex-direction: column; max-height: 90vh; }
+        .modal-header { padding: 16px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .modal-body { padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+        .form-group { display: flex; flex-direction: column; gap: 4px; }
+        .form-group label { font-size: 0.75rem; color: var(--text-sub); }
+        .form-group input, .form-group textarea { background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px; color: #fff; font-size: 0.95rem; }
+        .form-group textarea { resize: vertical; min-height: 80px; }
+        .modal-footer { padding: 12px 16px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 8px; }
+        .btn { padding: 10px 18px; border-radius: 6px; border: none; font-size: 0.9rem; cursor: pointer; font-weight: 500; }
+        .btn-primary { background: #3b82f6; color: #fff; }
+        .btn-secondary { background: var(--surface-hover); color: var(--text-main); }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-title">
+            <h1>柘榴 & 琥珀</h1>
+            <p id="status-text">プライベートチャット</p>
+        </div>
+        <div class="header-btns">
+            <button class="icon-btn" id="new-chat-btn" title="新規チャット">＋</button>
+            <button class="icon-btn" id="settings-open" title="設定">⚙️</button>
+        </div>
+    </header>
+
+    <div class="mode-tabs">
+        <button class="mode-tab active" data-mode="both">3人同時</button>
+        <button class="mode-tab" data-mode="zakuro">柘榴モード</button>
+        <button class="mode-tab" data-mode="kohaku">琥珀モード</button>
+    </div>
+
+    <div class="chat-container" id="chat-container"></div>
+
+    <div class="input-area">
+        <button class="snap-btn" id="snap-btn" title="スナップ生成">📷</button>
+        <input type="text" id="chat-input" placeholder="メッセージを入力...">
+        <button class="send-btn" id="send-btn">➤</button>
+    </div>
+
+    <div class="modal" id="settings-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>設定</h2>
+                <button class="icon-btn" id="settings-close">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Gemini API キー</label>
+                    <input type="text" id="api-key-input" placeholder="AIzaSy...">
+                </div>
+                <div class="form-group">
+                    <label>柘榴の設定・口調</label>
+                    <textarea id="zakuro-setting">一人称「あーし」。明るく軽快なギャル系、流行や楽しいことが好き。まーくんと呼ぶ。</textarea>
+                </div>
+                <div class="form-group">
+                    <label>琥珀の設定・口調</label>
+                    <textarea id="kohaku-setting">一人称「アタシ」。落ち着いていて穏やか、面倒見が良い。まーくんと呼ぶ。</textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="settings-cancel">キャンセル</button>
+                <button class="btn btn-primary" id="settings-save">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const STORAGE_KEY_CONFIG = 'zakuro_kohaku_config';
+        const STORAGE_KEY_CHATS = 'zakuro_kohaku_chats';
+
+        let config = JSON.parse(localStorage.getItem(STORAGE_KEY_CONFIG)) || {
+            apiKey: '',
+            zakuroSetting: '一人称「あーし」。明るく軽快なギャル系、流行や楽しいことが好き。まーくんと呼ぶ。',
+            kohakuSetting: '一人称「アタシ」。落ち着いていて穏やか、面倒見が良い。まーくんと呼ぶ。'
+        };
+
+        function getInitialChats() {
+            return [
+                {
+                    speaker: 'both',
+                    text: 'お疲れ！今日もまーくんと話す準備バッチリだよ。',
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                }
+            ];
+        }
+
+        let chats = JSON.parse(localStorage.getItem(STORAGE_KEY_CHATS)) || getInitialChats();
+        let currentMode = 'both';
+
+        const chatContainer = document.getElementById('chat-container');
+        const chatInput = document.getElementById('chat-input');
+        const sendBtn = document.getElementById('send-btn');
+        const snapBtn = document.getElementById('snap-btn');
+        const newChatBtn = document.getElementById('new-chat-btn');
+        const modeTabs = document.querySelectorAll('.mode-tab');
+        
+        const settingsModal = document.getElementById('settings-modal');
+        const settingsOpen = document.getElementById('settings-open');
+        const settingsClose = document.getElementById('settings-close');
+        const settingsCancel = document.getElementById('settings-cancel');
+        const settingsSave = document.getElementById('settings-save');
+        const apiKeyInput = document.getElementById('api-key-input');
+        const zakuroSettingInput = document.getElementById('zakuro-setting');
+        const kohakuSettingInput = document.getElementById('kohaku-setting');
+
+        function renderChats() {
+            chatContainer.innerHTML = '';
+            chats.forEach(chat => {
+                const msgDiv = document.createElement('div');
+                msgDiv.className = `message ${chat.speaker}`;
+                
+                let headerHTML = '';
+                if (chat.speaker === 'user') {
+                    headerHTML = `<div class="message-header"><span>まーくん</span><span>${chat.time}</span></div>`;
+                } else if (chat.speaker === 'zakuro') {
+                    headerHTML = `<div class="message-header"><span class="speaker-name">柘榴</span><span>${chat.time}</span></div>`;
+                } else if (chat.speaker === 'kohaku') {
+                    headerHTML = `<div class="message-header"><span class="speaker-name">琥珀</span><span>${chat.time}</span></div>`;
+                } else {
+                    headerHTML = `<div class="message-header"><span class="speaker-name">柘榴 & 琥珀</span><span>${chat.time}</span></div>`;
+                }
+
+                let imageHTML = '';
+                if (chat.image) {
+                    imageHTML = `<div class="snap-img-wrapper"><img src="${chat.image}" alt="Snap"></div>`;
+                }
+
+                msgDiv.innerHTML = `
+                    ${headerHTML}
+                    <div class="bubble">
+                        ${chat.text}
+                        ${imageHTML}
+                    </div>
+                `;
+                chatContainer.appendChild(msgDiv);
+            });
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function saveChats() {
+            localStorage.setItem(STORAGE_KEY_CHATS, JSON.stringify(chats));
+        }
+
+        newChatBtn.addEventListener('click', () => {
+            if (confirm('新しいチャットを始めますか？（現在の会話はリセットされます）')) {
+                chats = getInitialChats();
+                saveChats();
+                renderChats();
+            }
+        });
+
+        modeTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                modeTabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                currentMode = tab.getAttribute('data-mode');
+            });
+        });
+
+        settingsOpen.addEventListener('click', () => {
+            apiKeyInput.value = config.apiKey;
+            zakuroSettingInput.value = config.zakuroSetting;
+            kohakuSettingInput.value = config.kohakuSetting;
+            settingsModal.classList.add('active');
+        });
+
+        [settingsClose, settingsCancel].forEach(el => {
+            el.addEventListener('click', () => settingsModal.classList.remove('active'));
+        });
+
+        settingsSave.addEventListener('click', () => {
+            config.apiKey = apiKeyInput.value.trim();
+            config.zakuroSetting = zakuroSettingInput.value.trim();
+            config.kohakuSetting = kohakuSettingInput.value.trim();
+            localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(config));
+            settingsModal.classList.remove('active');
+            alert('設定を保存しました');
+        });
+
+        async function callGeminiAPI(promptText) {
+            const key = config.apiKey ? config.apiKey.trim() : '';
+            if (!key) {
+                settingsModal.classList.add('active');
+                throw new Error('APIキーが設定されていません。右上の歯車アイコンから設定してください。');
+            }
+
+            const modelName = 'gemini-3.8-flash';
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${key}`;
+            
+            let systemPrompt = `あなたは「柘榴（ざくろ）」と「琥珀（こはく）」という二人のキャラクターです。相手は「まーくん」です。
+現在のモードは「${currentMode}」です。
+柘榴の設定: ${config.zakuroSetting}
+琥珀の設定: ${config.kohakuSetting}
+
+まーくんの発言に対して、現在のモードに応じて返答してください。
+- "both"モード: 柘榴と琥珀の双方が自然に会話する形式（例：柘榴の発言と琥珀の発言を両方含める）。
+- "zakuro"モード: 柘榴一人として返答。
+- "kohaku"モード: 琥珀一人として返答。`;
+
+            const requestBody = {
+                contents: [
+                    {
+                        role: "user",
+                        parts: [{ text: systemPrompt + "\n\nまーくんの発言: " + promptText }]
+                    }
+                ]
+            };
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestBody)
+            });
+            
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                const errMsg = errData.error?.message || `HTTPエラー ${response.status}`;
+                if (response.status === 503 || errMsg.includes('high demand')) {
+                    throw new Error('サーバーが混雑しています。少し待ってから再送してください。');
+                }
+                throw new Error(errMsg);
+            }
+
+            const data = await response.json();
+            if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts.length > 0) {
+                return data.candidates[0].content.parts[0].text;
+            } else {
+                throw new Error('APIの応答形式が不正です');
+            }
+        }
+
+        async function generateSnapImage() {
+            const key = config.apiKey ? config.apiKey.trim() : '';
+            if (!key) {
+                settingsModal.classList.add('active');
+                throw new Error('APIキーが設定されていません。');
+            }
+
+            const recentTexts = chats.slice(-4).map(c => c.text).join('\n');
+            const promptBuildUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${key}`;
+            const promptReq = {
+                contents: [{
+                    role: "user",
+                    parts: [{
+                        text: `以下の会話の雰囲気を表す日常的なスナップ写真用の英語プロンプト（1文）を作成してください。プロンプトのみ出力:\n\n${recentTexts}`
+                    }]
+                }]
+            };
+
+            const promptRes = await fetch(promptBuildUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(promptReq)
+            });
+            const promptData = await promptRes.json();
+            const imagePrompt = promptData.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "A calm cozy Japanese room with warm afternoon sunlight";
+
+            const imagenUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generateImages-002:predict?key=${key}`;
+            const imagenReq = {
+                instances: [{ prompt: imagePrompt }],
+                parameters: {
+                    sampleCount: 1,
+                    aspectRatio: "1:1",
+                    outputMimeType: "image/jpeg"
+                }
+            };
+
+            const imagenRes = await fetch(imagenUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(imagenReq)
+            });
+
+            if (!imagenRes.ok) {
+                const errData = await imagenRes.json().catch(() => ({}));
+                throw new Error(errData.error?.message || `画像APIエラー (HTTP ${imagenRes.status})`);
+            }
+
+            const imagenData = await imagenRes.json();
+            const b64Image = imagenData.predictions?.[0]?.bytesBase64Encoded;
+            if (!b64Image) {
+                throw new Error('画像データが取得できませんでした');
+            }
+
+            return `data:image/jpeg;base64,${b64Image}`;
+        }
+
+        async function handleSend() {
+            const text = chatInput.value.trim();
+            if (!text) return;
+
+            const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            chats.push({ speaker: 'user', text: text, time: timeStr });
+            chatInput.value = '';
+            renderChats();
+            saveChats();
+
+            let speakerType = 'both';
+            if (currentMode === 'zakuro') speakerType = 'zakuro';
+            if (currentMode === 'kohaku') speakerType = 'kohaku';
+
+            const loadingIndex = chats.length;
+            chats.push({ speaker: speakerType, text: '考え中...', time: timeStr });
+            renderChats();
+
+            try {
+                const aiResponse = await callGeminiAPI(text);
+                chats[loadingIndex].text = aiResponse;
+                chats[loadingIndex].time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            } catch (error) {
+                chats[loadingIndex].text = 'エラー: ' + error.message;
+                chats[loadingIndex].time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            }
+            renderChats();
+            saveChats();
+        }
+
+        snapBtn.addEventListener('click', async () => {
+            const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            let speakerType = 'both';
+            if (currentMode === 'zakuro') speakerType = 'zakuro';
+            if (currentMode === 'kohaku') speakerType = 'kohaku';
+
+            const loadingIndex = chats.length;
+            chats.push({ speaker: speakerType, text: 'スナップを生成中...', time: timeStr });
+            renderChats();
+
+            try {
+                const imageUrl = await generateSnapImage();
+                chats[loadingIndex].text = 'スナップを撮影しました。';
+                chats[loadingIndex].image = imageUrl;
+                chats[loadingIndex].time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            } catch (error) {
+                chats[loadingIndex].text = 'スナップ生成エラー: ' + error.message;
+                chats[loadingIndex].time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            }
+            renderChats();
+            saveChats();
+        });
+
+        sendBtn.addEventListener('click', handleSend);
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleSend();
+        });
+
+        renderChats();
+    </script>
+</body>
+</html>
